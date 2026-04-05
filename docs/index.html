@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Carbon Methodologies MVP</title>
+    <!-- Add SEO metadata -->
+    <meta name="description" content="AI-powered engine for evaluating and verifying carbon methodologies and MRV processes.">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+      /* Make the iframe fill the entire screen and remove scrollbars */
+      body, html {
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        width: 100vw;
+        overflow: hidden;
+        background-color: #0E1117; /* Streamlit default dark theme background */
+      }
+      iframe {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+        border: none;
+      }
+      /* Optional loading spinner before iframe loads */
+      .loader-container {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        font-family: sans-serif;
+        text-align: center;
+        z-index: -1; /* Puts it behind the iframe so it disappears when loaded */
+      }
+    </style>
+  </head>
+  <body>
+    <div class="loader-container">
+      <h3>Loading Application...</h3>
+    </div>
+    <!-- Pointing to the custom subdomain on Streamlit, with '?embed=True' to hide their headers -->
+    <iframe src="https://methodologies.streamlit.app/?embed=True" allow="clipboard-write; camera; microphone"></iframe>
+  </body>
+</html>
