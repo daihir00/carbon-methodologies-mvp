@@ -59,6 +59,11 @@ class CarbonEngine:
                         value = float(value)
                     elif target_type == 'integer':
                         value = int(value)
+                    elif target_type == 'array':
+                        if isinstance(value, str):
+                            value = [float(x.strip()) for x in value.split(',') if x.strip()]
+                        elif isinstance(value, list):
+                            value = [float(x) for x in value]
                     validated[input_id] = value
                 except ValueError:
                     errors.append(f"Invalid type for {label}: expected {input_def['type']}")
@@ -94,22 +99,69 @@ class CarbonEngine:
 
                 try:
                     operand_values = [context.get(k, 0.0) for k in step_inputs]
+                    params = step.get('parameters', {})
                     
                     if method == 'multiply':
-                        val = 1.0
-                        for v in operand_values:
-                            val *= v
-                        result = val
+                        if all(isinstance(v, (int, float)) for v in operand_values):
+                            val = 1.0
+                            for v in operand_values:
+                                val *= v
+                            result = val
+                        else:
+                            arr_idx = 0 if isinstance(operand_values[0], list) else 1
+                            scalar_idx = 1 - arr_idx
+                            if len(operand_values) == 2 and isinstance(operand_values[arr_idx], list):
+                                scalar = operand_values[scalar_idx]
+                                result = [v * scalar for v in operand_values[arr_idx]]
+                            else:
+                                raise ValueError("multiply currently supports one array and one scalar max")
                         
                     elif method == 'subtract':
-                        # First minus the rest
                         if len(operand_values) > 0:
-                            result = operand_values[0]
-                            for v in operand_values[1:]:
-                                result -= v
+                            v0 = operand_values[0]
+                            if isinstance(v0, list):
+                                if len(operand_values) == 2 and not isinstance(operand_values[1], list):
+                                    result = [x - operand_values[1] for x in v0]
+                                else:
+                                    raise ValueError("subtract array minus array not yet implemented")
+                            else:
+                                result = v0
+                                for v in operand_values[1:]:
+                                    result -= v
                         else:
                             result = 0.0
-                    
+                            
+                    elif method == 'si_to_agb':
+                        a = params.get('a', 1.0)
+                        b = params.get('b', 1.0)
+                        si_array = operand_values[0]
+                        result = [a * (si ** b) for si in si_array]
+                        
+                    elif method == 'percentile':
+                        p = params.get('p', 50)
+                        arr = sorted(operand_values[0])
+                        k = (len(arr) - 1) * (p / 100.0)
+                        f = int(k)
+                        c = int(k) + 1 if int(k) + 1 < len(arr) else f
+                        result = arr[f] + (k - f) * (arr[c] - arr[f])
+                        
+                    elif method == 'clip_min':
+                        min_val = params.get('min', 0.0)
+                        v0 = operand_values[0]
+                        if isinstance(v0, list):
+                            result = [max(x, min_val) for x in v0]
+                        else:
+                            result = max(v0, min_val)
+                            
+                    elif method == 'agb_to_co2':
+                        carbon_fraction = params.get('carbon_fraction', 0.47)
+                        v0 = operand_values[0]
+                        factor = carbon_fraction * (44.0 / 12.0)
+                        if isinstance(v0, list):
+                            result = [x * factor for x in v0]
+                        else:
+                            result = v0 * factor
+
                     elif method == 'add': # Basic support
                          result = sum(operand_values)
 
@@ -118,11 +170,12 @@ class CarbonEngine:
                     
                     context[output_key] = result
                     
+                    display_result = result if not isinstance(result, list) else f"Array(len={len(result)}, sum={sum(result):.2f})"
                     trace.append({
                         "step_id": step_id,
                         "description": step_desc,
                         "formula": f"{method}({', '.join(step_inputs)})",
-                        "result": result,
+                        "result": display_result,
                         "unit": step.get('output_unit', '')
                     })
                     
@@ -132,6 +185,8 @@ class CarbonEngine:
             # Identify Basis for Deductions (usually the last step's output)
             base_amount_key = steps[-1]['output']
             base_amount = context.get(base_amount_key, 0.0)
+            if isinstance(base_amount, list):
+                base_amount = sum(base_amount)
 
         else:
             # Legacy Eval Mode (Keep for backward compatibility during migration)

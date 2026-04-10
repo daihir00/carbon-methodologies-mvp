@@ -91,7 +91,9 @@ def main():
         for idx, input_def in enumerate(inputs_def):
             col = cols[idx % 2]
             input_id = input_def['id']
-            label = f"{input_def['label']} ({input_def.get('unit', '')})"
+            # Fallback for label if missing
+            label_text = input_def.get('label', input_id.replace('_', ' ').title())
+            label = f"{label_text} ({input_def.get('unit', '')})"
             
             # Get AI Guidance
             guidance = ai.get_input_guidance(input_id)
