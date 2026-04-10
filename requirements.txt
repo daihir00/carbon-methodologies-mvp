@@ -2,3 +2,6 @@ streamlit
 pandas
 pyyaml
 simpleeval
+folium
+streamlit-folium
+pyproj

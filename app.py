@@ -1,159 +1,98 @@
 import streamlit as st
-import pandas as pd
+import folium
+from folium.plugins import Draw
+from streamlit_folium import st_folium
+from pyproj import Geod
 from engine.core import CarbonEngine
-from ai.assistant import AIAssistant
 
-# Initialize Engine and AI
+st.set_page_config(layout="wide")
+st.title("🌳 VM0047 Carbon Simulator")
+
 engine = CarbonEngine()
-ai = AIAssistant()
 
-st.set_page_config(
-    page_title="Carbon Methodology MVP",
-    page_icon="🌿",
-    layout="wide"
-)
+st.markdown("Draw a polygon on the map to define your project area, or manually input it below.")
 
-# Custom CSS for a cleaner look
-st.markdown("""
-<style>
-    .stButton>button {
-        width: 100%;
-        border-radius: 5px;
-        height: 3em;
-        background-color: #00CC66;
-        color: white;
-    }
-    .metric-card {
-        background-color: #f0f2f6;
-        padding: 20px;
-        border-radius: 10px;
-        text-align: center;
-    }
-</style>
-""", unsafe_allow_html=True)
+col1, col2 = st.columns([2, 1])
 
-def main():
-    st.title("🌿 Carbon Credit Estimation Tool")
-    st.caption("A preliminary estimation tool using standardized carbon methodologies.")
-
-    # Sidebar: Project Context
-    with st.sidebar:
-        st.header("Project Details")
-        description = st.text_area(
-            "Describe your project",
-            placeholder="e.g. Reforestation of 500ha of degraded cattle pasture in Brazil...",
-            height=150
-        )
-        
-        # Methodology Suggestion
-        all_methods = engine.get_all_methodologies()
-        if description:
-            suggested_ids = ai.suggest_methodology(description, all_methods)
-            st.info(f"AI Suggestion: {', '.join(suggested_ids)}")
-        else:
-            suggested_ids = [m['id'] for m in all_methods]
-
-        method_options = {m['id']: f"{m['id']} - {m['name']}" for m in all_methods}
-        
-        # Filter options based on suggestion (optional, just sorting/highlighting for now)
-        # For simplicity, we just show all but default to the suggested one
-        default_idx = 0
-        if suggested_ids and suggested_ids[0] in method_options:
-            keys = list(method_options.keys())
-            if suggested_ids[0] in keys:
-                default_idx = keys.index(suggested_ids[0])
-
-        selected_method_id = st.selectbox(
-            "Select Methodology",
-            options=list(method_options.keys()),
-            format_func=lambda x: method_options[x],
-            index=default_idx
-        )
-
-    if not selected_method_id:
-        st.warning("Please verify methodology files are present in the 'data' directory.")
-        return
-
-    methodology = engine.get_methodology(selected_method_id)
+with col1:
+    m = folium.Map(location=[0, 0], zoom_start=2)
+    Draw(
+        export=True,
+        position='topleft',
+        draw_options={
+            'polyline': False,
+            'polygon': True,
+            'circle': False,
+            'rectangle': True,
+            'marker': False,
+            'circlemarker': False
+        }
+    ).add_to(m)
     
-    st.write("---")
-    st.subheader(f"Methodology: {methodology['name']} ({methodology['id']})")
-    st.write(f"**Applicability:** {methodology['applicability']['description']}")
+    map_data = st_folium(m, width=900, height=500)
 
-    # Form Generation
-    with st.form("calculation_form"):
-        st.markdown("### Inputs")
+area_ha = 0.0
+
+if map_data and map_data.get("all_drawings") and len(map_data["all_drawings"]) > 0:
+    latest_drawing = map_data["all_drawings"][-1]
+    geom = latest_drawing.get("geometry", {})
+    if geom.get("type") == "Polygon":
+        coords = geom.get("coordinates", [[]])[0]
+        if len(coords) >= 3:
+            lons = [c[0] for c in coords]
+            lats = [c[1] for c in coords]
+            try:
+                geod = Geod(ellps="WGS84")
+                area_m2, _ = geod.polygon_area_perimeter(lons, lats)
+                area_ha = abs(area_m2) / 10000.0
+            except Exception as e:
+                st.error(f"Error calculating area: {e}")
+
+with col2:
+    st.subheader("Project Settings")
+    if area_ha > 0:
+        st.success(f"Drawn Area: **{area_ha:,.2f} ha**")
+        area = st.number_input("Area (ha)", value=float(area_ha), min_value=0.1)
+    else:
+        st.info("Draw a polygon on the map to auto-calculate area.")
+        area = st.number_input("Area (ha)", value=100.0, min_value=0.1)
         
-        user_inputs = {}
-        cols = st.columns(2)
-        
-        inputs_def = methodology.get('inputs', [])
-        for idx, input_def in enumerate(inputs_def):
-            col = cols[idx % 2]
-            input_id = input_def['id']
-            # Fallback for label if missing
-            label_text = input_def.get('label', input_id.replace('_', ' ').title())
-            label = f"{label_text} ({input_def.get('unit', '')})"
-            
-            # Get AI Guidance
-            guidance = ai.get_input_guidance(input_id)
-            
-            if input_def['type'] == 'number':
-                val = col.number_input(
-                    label,
-                    value=float(input_def.get('default', 0.0)),
-                    help=guidance
-                )
-                user_inputs[input_id] = val
-            else:
-                 val = col.text_input(label, help=guidance)
-                 user_inputs[input_id] = val
+    years = st.slider("Project Duration", 1, 50, 20)
+    
+    species = st.selectbox(
+        "Species",
+        ["teak", "eucalyptus", "pine"]
+    )
+    
+    region = st.selectbox(
+        "Region",
+        ["tropical", "temperate", "boreal"]
+    )
+    
+    uncertainty = st.checkbox("Include Uncertainty Range", True)
+    
+    run = st.button("Run Simulation", type="primary")
 
-        submitted = st.form_submit_button("Calculate Estimation")
+if run:
+    inputs = {
+        "area_ha": area,
+        "species": species,
+        "region": region,
+        "project_duration_years": years,
+        "include_uncertainty": uncertainty
+    }
 
-    if submitted:
-        try:
-            # Validate
-            validated_inputs = engine.validate_inputs(selected_method_id, user_inputs)
-            
-            # Calculate
-            results = engine.calculate(selected_method_id, validated_inputs)
-            
-            st.write("---")
-            st.markdown("## Estimation Results")
-            
-            # Top-level Metrics
-            m1, m2, m3 = st.columns(3)
-            with m1:
-                st.metric("Gross Removals", f"{results['gross_pre_deduction']:,.0f} tCO2e")
-            with m2:
-                deduction_total = results['gross_pre_deduction'] - results['net_co2e']
-                st.metric("Total Deductions", f"-{deduction_total:,.0f} tCO2e")
-            with m3:
-                st.metric("Net Carbon Credits", f"{results['net_co2e']:,.0f} tCO2e", delta_color="normal")
+    results = engine.run(inputs)
 
-            # AI Explanation
-            st.success(ai.explain_result(results))
+    st.divider()
+    st.subheader("Results")
+    col_res1, col_res2, col_res3 = st.columns(3)
+    with col_res1:
+        st.metric("🌍 Total CO2 (tCO2)", f"{results['total']:,.0f}")
+    with col_res2:
+        st.metric("📊 Net Credits (tCO2)", f"{results['net']:,.0f}")
+    with col_res3:
+        st.metric("⚖️ Uncertainty Range", f"{results['uncertainty']['low']:,.0f} - {results['uncertainty']['high']:,.0f}")
 
-            # Traceability / breakdown
-            st.markdown("### Calculation Trace")
-            with st.expander("View Detailed Steps"):
-                st.markdown("#### Quantification Steps")
-                step_data = []
-                for step in results['trace']:
-                    step_data.append([step['description'], step['formula'], f"{step['result']:,.2f} {step['unit']}"])
-                st.table(pd.DataFrame(step_data, columns=["Step", "Formula", "Result"]))
-                
-                st.markdown("#### Deductions Applied")
-                ded_data = []
-                for d in results['deductions']:
-                    ded_data.append([d['name'], f"{d['value']*100}%", f"{d['amount']:,.2f}"])
-                st.table(pd.DataFrame(ded_data, columns=["Deduction", "Rate", "Amount Cleared"]))
-            
-            st.caption("Disclaimer: This is a preliminary estimation only and not a verified carbon credit issuance. Final numbers require 3rd party auditing.")
-
-        except Exception as e:
-            st.error(f"Error during calculation: {e}")
-
-if __name__ == "__main__":
-    main()
+    st.subheader("📈 Yearly CO2 Simulation")
+    st.line_chart([r["co2"] for r in results["yearly"]])

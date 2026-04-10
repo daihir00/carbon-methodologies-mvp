@@ -1,0 +1,64 @@
+method:
+  id: VM0047
+  name: "VM0047 Simplified Afforestation/Reforestation Model"
+  version: "0.2"
+
+inputs:
+  - name: area_ha
+    type: float
+    required: true
+
+  - name: species
+    type: string
+    required: true
+
+  - name: region
+    type: string
+    required: true
+
+  - name: project_duration_years
+    type: int
+    required: true
+
+  - name: include_uncertainty
+    type: boolean
+    default: true
+
+parameters:
+
+  species_params:
+
+    teak:
+      wood_density: 0.65
+      dbh: {a: 70, b: 0.05, c: 2.5}
+      height: {a: 40, b: 0.04, c: 2.3}
+
+    eucalyptus:
+      wood_density: 0.55
+      dbh: {a: 65, b: 0.06, c: 2.4}
+      height: {a: 38, b: 0.05, c: 2.2}
+
+    pine:
+      wood_density: 0.50
+      dbh: {a: 60, b: 0.045, c: 2.6}
+      height: {a: 35, b: 0.04, c: 2.4}
+
+  region_factors:
+    tropical: 1.2
+    temperate: 1.0
+    boreal: 0.8
+
+  root_shoot_ratio: 0.24
+  litter_ratio: 0.05
+  deadwood_ratio: 0.1
+
+  soil:
+    default_tCO2_per_ha: 80
+    accumulation_rate_tCO2_per_ha_yr: 1.5
+
+  carbon_fraction: 0.47
+  co2_conversion: 3.67
+
+  uncertainty:
+    low: 0.8
+    high: 1.2
