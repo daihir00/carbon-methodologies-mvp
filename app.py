@@ -57,6 +57,7 @@ with col2:
         st.info("Draw a polygon on the map to auto-calculate area.")
         area = st.number_input("Area (ha)", value=100.0, min_value=0.1)
         
+    trees_per_ha = st.number_input("Trees planted per ha", value=1000, step=100)
     years = st.slider("Project Duration", 1, 50, 20)
     
     species = st.selectbox(
@@ -76,6 +77,7 @@ with col2:
 if run:
     inputs = {
         "area_ha": area,
+        "trees_per_ha": trees_per_ha,
         "species": species,
         "region": region,
         "project_duration_years": years,
@@ -96,3 +98,9 @@ if run:
 
     st.subheader("📈 Yearly CO2 Simulation")
     st.line_chart([r["co2"] for r in results["yearly"]])
+
+    st.subheader("📝 Calculation Formula Extract")
+    with st.expander("Show Calculation Trace (Year 1)"):
+        st.markdown(results["yearly"][0]["formula"])
+    with st.expander(f"Show Calculation Trace (Year {years})", expanded=True):
+        st.markdown(results["yearly"][-1]["formula"])

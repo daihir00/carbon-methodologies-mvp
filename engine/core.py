@@ -23,9 +23,13 @@ class CarbonEngine:
         dbh = growth(year, **sp["dbh"], factor=factor)
         height = growth(year, **sp["height"], factor=factor)
 
+        trees_per_ha = inputs.get("trees_per_ha", 1000)
         rho = sp["wood_density"]
 
-        agb = 0.0673 * (rho * dbh**2 * height) ** 0.976
+        agb_tree_kg = 0.0673 * (rho * dbh**2 * height) ** 0.976
+        agb_t_per_ha = (agb_tree_kg * trees_per_ha) / 1000.0
+
+        agb = agb_t_per_ha
         bgb = agb * params["root_shoot_ratio"]
         litter = agb * params["litter_ratio"]
         deadwood = agb * params["deadwood_ratio"]
@@ -36,7 +40,30 @@ class CarbonEngine:
         ) * inputs["area_ha"]
 
         carbon = (agb + bgb + litter + deadwood) * params["carbon_fraction"]
-        co2 = carbon * params["co2_conversion"] * inputs["area_ha"]
+        co2_t_per_ha = carbon * params["co2_conversion"]
+        co2 = co2_t_per_ha * inputs["area_ha"]
+
+        formula_text = f"""
+**【Year {year} Calculation Trace (Area: {inputs['area_ha']} ha, Trees/ha: {trees_per_ha})】**
+
+**1. Growth Model (Species: {species}, Region factor: {factor})**:
+- DBH (cm) = *{sp['dbh']['a']} × (1 - exp(-{sp['dbh']['b']} × {year}))^{sp['dbh']['c']} × {factor}* = **{dbh:.2f} cm**
+- Height (m) = *{sp['height']['a']} × (1 - exp(-{sp['height']['b']} × {year}))^{sp['height']['c']} × {factor}* = **{height:.2f} m**
+
+**2. Biomass per Tree (Chave et al. equation)**:
+- AGB_tree (kg) = *0.0673 × ({rho} × {dbh:.2f}² × {height:.2f})^0.976* = **{agb_tree_kg:.2f} kg/tree**
+
+**3. Carbon Pools per Hectare (tons/ha)**:
+- AGB (t/ha) = *{agb_tree_kg:.2f} kg × {trees_per_ha} trees / 1000* = **{agb:.2f} t/ha**
+- BGB (t/ha) = *AGB × {params['root_shoot_ratio']}* = **{bgb:.2f} t/ha**
+- Litter (t/ha) = *AGB × {params['litter_ratio']}* = **{litter:.2f} t/ha**
+- Deadwood (t/ha) = *AGB × {params['deadwood_ratio']}* = **{deadwood:.2f} t/ha**
+
+**4. CO2 Equivalents (tons/ha & total)**:
+- Total Biomass Carbon = *({agb:.2f} + {bgb:.2f} + {litter:.2f} + {deadwood:.2f}) × {params['carbon_fraction']} (carbon fraction)* = **{carbon:.2f} tC/ha**
+- CO2e per ha = *{carbon:.2f} × {params['co2_conversion']}* = **{co2_t_per_ha:.2f} tCO2/ha**
+- **Total CO2e** = *{co2_t_per_ha:.2f} tCO2/ha × {inputs['area_ha']} ha* = **{co2:.2f} tCO2**
+"""
 
         return {
             "year": year,
@@ -45,7 +72,8 @@ class CarbonEngine:
             "bgb": bgb,
             "litter": litter,
             "deadwood": deadwood,
-            "soil": soil
+            "soil": soil,
+            "formula": formula_text
         }
 
     def run(self, inputs):
