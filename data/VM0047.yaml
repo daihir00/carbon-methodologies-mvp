@@ -1,37 +1,27 @@
 id: "VM0047"
-name: "Afforestation, Reforestation, and Revegetation (ARR)"
+name: "VM0047 Simplified Afforestation/Reforestation Model"
 standard: "Verra"
-version: "1.0"
-estimation_level: "simplified"
-not_for_credit_issuance: true
+version: "0.2"
 
 applicability:
   type: "ARR"
   geography: "Global"
-  description: "Methodology for Afforestation, Reforestation, and Revegetation projects."
+  description: "Advanced methodology for Afforestation, Reforestation, and Revegetation projects with species-specific exponential growth modeling."
 
 inputs:
   - id: "area_ha"
     label: "Project Area"
     type: "number"
-    unit: "hectares"
+    unit: "ha"
     required: true
     description: "Total eligible area for planting."
 
-  - id: "baseline_stock_tCO2_ha"
-    label: "Baseline Carbon Stock"
+  - id: "trees_per_ha"
+    label: "Trees planted per ha"
     type: "number"
-    unit: "tCO2e/ha"
     required: true
-    default: 0
-    description: "Existing stock (usually near zero for degraded land)."
-
-  - id: "avg_growth_rate_tCO2_ha_yr"
-    label: "Average Growth Rate"
-    type: "number"
-    unit: "tCO2e/ha/yr"
-    required: true
-    description: "Estimated annual carbon sequestration."
+    default: 1000
+    description: "Number of trees planted per hectare."
 
   - id: "project_duration_years"
     label: "Project Duration"
@@ -39,35 +29,62 @@ inputs:
     unit: "years"
     required: true
     default: 20
-    description: "Crediting period length."
+    description: "Length of the crediting period."
 
-quantification:
-  steps:
-    - id: "baseline_emissions"
-      method: "multiply"
-      inputs: ["area_ha", "baseline_stock_tCO2_ha"]
-      output: "baseline_total"
-      description: "Calculate Total Baseline Emissions"
+  - id: "species"
+    label: "Species"
+    type: "select"
+    options: ["teak", "eucalyptus", "pine"]
+    required: true
+    default: "teak"
+    description: "Main species planted."
 
-    - id: "annual_removals"
-      method: "multiply"
-      inputs: ["area_ha", "avg_growth_rate_tCO2_ha_yr"]
-      output: "annual_removals"
-      description: "Calculate Annual Project Removals"
+  - id: "region"
+    label: "Region Factor"
+    type: "select"
+    options: ["tropical", "temperate", "boreal"]
+    required: true
+    default: "tropical"
+    description: "Climatic region."
 
-    - id: "gross_removals"
-      method: "multiply"
-      inputs: ["annual_removals", "project_duration_years"]
-      output: "gross_co2e"
-      description: "Calculate Gross Removals over Duration"
+  - id: "include_uncertainty"
+    label: "Include Uncertainty Range"
+    type: "boolean"
+    required: true
+    default: true
+    description: "Whether to apply low/high uncertainty bounds."
 
-    - id: "net_pre_deduction"
-      method: "subtract"
-      inputs: ["gross_co2e", "baseline_total"]
-      output: "net_pre_deduction"
-      description: "Calculate Net Removals (Pre-Deduction)"
+parameters:
+  species_params:
+    teak:
+      wood_density: 0.65
+      dbh: {a: 70, b: 0.05, c: 2.5}
+      height: {a: 40, b: 0.04, c: 2.3}
+    eucalyptus:
+      wood_density: 0.55
+      dbh: {a: 65, b: 0.06, c: 2.4}
+      height: {a: 38, b: 0.05, c: 2.2}
+    pine:
+      wood_density: 0.50
+      dbh: {a: 60, b: 0.045, c: 2.6}
+      height: {a: 35, b: 0.04, c: 2.4}
 
-deductions:
-  uncertainty: 0.05
-  leakage: 0.10
-  buffer: 0.15
+  region_factors:
+    tropical: 1.2
+    temperate: 1.0
+    boreal: 0.8
+
+  root_shoot_ratio: 0.24
+  litter_ratio: 0.05
+  deadwood_ratio: 0.1
+
+  soil:
+    default_tCO2_per_ha: 80
+    accumulation_rate_tCO2_per_ha_yr: 1.5
+
+  carbon_fraction: 0.47
+  co2_conversion: 3.67
+
+  uncertainty:
+    low: 0.8
+    high: 1.2
