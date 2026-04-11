@@ -155,8 +155,20 @@ class CarbonEngine:
 
         total = sum(r["co2"] for r in results)
         net = total
+        deductions = []
 
         if inputs.get("include_uncertainty", True):
+            rate = inputs.get("uncertainty_deduction_rate", 20) / 100.0
+            amount = total * rate
+            deductions.append({
+                "id": "uncertainty_buffer",
+                "name": "Risk & Uncertainty Buffer",
+                "type": "percentage",
+                "value": rate,
+                "amount": amount
+            })
+            net = total - amount
+            
             low = net * params.get("uncertainty", {}).get("low", 0.8)
             high = net * params.get("uncertainty", {}).get("high", 1.2)
         else:
@@ -169,7 +181,7 @@ class CarbonEngine:
             "gross_pre_deduction": total,
             "yearly_results": results,
             "uncertainty": {"low": low, "high": high},
-            "deductions": [],
+            "deductions": deductions,
             "trace": []
         }
 

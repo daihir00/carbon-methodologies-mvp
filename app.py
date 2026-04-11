@@ -157,6 +157,9 @@ def main():
         elif target_type == 'boolean':
             val = col.checkbox(label, value=bool(default_val), help=guidance)
             user_inputs[input_id] = val
+            if input_id == 'include_uncertainty' and val:
+                deduction_rate = col.slider("Risk & Uncertainty Deduction (%)", min_value=0, max_value=30, value=20, help="Select the buffer percentage to hold back for non-permanence risk and uncertainty.")
+                user_inputs['uncertainty_deduction_rate'] = deduction_rate
             
         else:
             val = col.text_input(label, value=str(default_val or ""), help=guidance)
