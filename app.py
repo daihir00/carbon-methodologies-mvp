@@ -191,11 +191,14 @@ def main():
                 st.line_chart([r["co2"] for r in results["yearly_results"]])
 
                 st.subheader("📝 Calculation Transparency (Methodological Trace)")
-                years = len(results["yearly_results"])
-                with st.expander("Show Scientific Trace (Year 1)"):
-                    st.markdown(results["yearly_results"][0]["formula"])
-                with st.expander(f"Show Scientific Trace (Year {years})", expanded=True):
-                    st.markdown(results["yearly_results"][-1]["formula"])
+                
+                # Display calculation formula for every year in the project duration
+                for index, yearly_data in enumerate(results["yearly_results"]):
+                    year_num = index + 1
+                    # Expand the first year by default, keep others collapsed to save vertical space
+                    is_expanded = (year_num == 1)
+                    with st.expander(f"Calculation Formula (Year {year_num})", expanded=is_expanded):
+                        st.markdown(yearly_data["formula"])
                     
             # Legacy Charting for Step-Based output
             elif 'trace' in results and results['trace']:
