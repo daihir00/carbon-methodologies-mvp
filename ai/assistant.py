@@ -17,6 +17,9 @@ class AIAssistant:
         
         if "solar" in desc_lower or "wind" in desc_lower or "renewable" in desc_lower or "energy" in desc_lower:
             return ["ACM0002"]
+
+        if "mineral" in desc_lower or "rock" in desc_lower or "weathering" in desc_lower or "biomass" in desc_lower or "isometric" in desc_lower:
+            return ["ISO_MINERAL"]
         
         # Default fallback
         return [m['id'] for m in methodologies]

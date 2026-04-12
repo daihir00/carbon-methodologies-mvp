@@ -1,0 +1,67 @@
+id: "ISO_MINERAL"
+name: "Isometric Carbon Mineralization / ERW"
+standard: "Isometric"
+version: "1.0"
+
+applicability:
+  type: "Mineralization (CDR)"
+  geography: "Global"
+  description: "Carbon dioxide removal (CDR) via the accelerated weathering of alkaline minerals or direct carbon mineralization."
+
+inputs:
+  - id: "mass_of_rock_deployed"
+    label: "Mass of Rock Deployed"
+    type: "number"
+    unit: "tons"
+    required: true
+    default: 10000.0
+    description: "Total mass of silicate or alkaline rock deployed."
+
+  - id: "carbonation_potential"
+    label: "Carbonation Potential"
+    type: "number"
+    unit: "tCO2 / t_rock"
+    required: true
+    default: 0.3
+    description: "Maximum theoretical CO2 uptake per ton of rock (e.g., Basalt ~0.3, Olivine ~1.25)."
+
+  - id: "conversion_efficiency_pct"
+    label: "Conversion / Weathering Efficiency"
+    type: "number"
+    unit: "%"
+    required: true
+    default: 40.0
+    description: "Expected percentage of theoretical carbonation achieved during the crediting period."
+
+  - id: "project_duration_years"
+    label: "Monitoring Period"
+    type: "integer"
+    unit: "years"
+    required: true
+    default: 10
+    description: "Total monitoring period for the weathering process."
+
+  - id: "project_emissions"
+    label: "Total Project Emissions"
+    type: "number"
+    unit: "tCO2"
+    required: true
+    default: 150.0
+    description: "Total life-cycle emissions from mining, crushing, and transporting the rock."
+
+steps:
+  - id: "maximum_theoretical_removal"
+    description: "Theoretical maximum CO2 removal capacity"
+    formula: "mass_of_rock_deployed * carbonation_potential"
+    output_unit: "tCO2"
+
+  - id: "gross_carbon_removal"
+    description: "Expected Gross CO2 Removal (Factoring efficiency)"
+    formula: "maximum_theoretical_removal * (conversion_efficiency_pct / 100)"
+    output_unit: "tCO2"
+
+deductions:
+  - id: "pe_deduction"
+    name: "Project Emissions (LCA Deduction)"
+    type: "variable"
+    value: "project_emissions"
