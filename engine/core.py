@@ -338,6 +338,8 @@ class CarbonEngine:
                     amount = base_amount * d_val
                 elif d_type == 'fixed':
                     amount = d_val
+                elif d_type == 'variable':
+                    amount = float(context.get(d_val, 0.0))
                 
                 total_deduction_amount += amount
                 deduction_results.append({

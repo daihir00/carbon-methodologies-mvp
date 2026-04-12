@@ -61,19 +61,22 @@ steps:
     output_unit: "MWh/yr"
 
   - id: "annual_baseline_emissions"
-    description: "Baseline emissions (Emissions avoided from the grid)"
+    description: "Annual Baseline Emissions (Grid avoidance)"
     formula: "annual_generation_mwh * grid_emission_factor"
     output_unit: "tCO2/yr"
 
-  - id: "annual_emission_reductions"
-    description: "Net annual emission reductions (Baseline - Project Emissions)"
-    formula: "annual_baseline_emissions - project_emissions"
-    output_unit: "tCO2/yr"
+  - id: "total_project_emissions"
+    description: "Total emissions from the project operation over the crediting period"
+    formula: "project_emissions * project_duration_years"
+    output_unit: "tCO2"
 
-  - id: "total_project_reductions"
-    description: "Total emission reductions over the crediting period"
-    formula: "annual_emission_reductions * project_duration_years"
+  - id: "total_baseline_emissions"
+    description: "Total Gross Baseline Emissions over crediting period"
+    formula: "annual_baseline_emissions * project_duration_years"
     output_unit: "tCO2"
 
 deductions:
-  transmission_and_distribution_loss: 0.02
+  - id: "pe_deduction"
+    name: "Project Emissions"
+    type: "variable"
+    value: "total_project_emissions"

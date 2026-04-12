@@ -181,8 +181,20 @@ def main():
             with m1:
                 st.metric("Gross Projected Removals", f"{results['gross_pre_deduction']:,.0f} tCO2e")
             with m2:
-                deduction_amt = sum(d['amount'] for d in results.get('deductions', []))
-                st.metric("Risk & Uncertainty Deductions", f"-{deduction_amt:,.0f} tCO2e")
+                deductions_list = results.get('deductions', [])
+                deduction_amt = sum(d['amount'] for d in deductions_list)
+                
+                if deductions_list:
+                    # Get unique names to form a comma-separated label
+                    names = []
+                    for d in deductions_list:
+                        if d['name'] not in names:
+                            names.append(d['name'])
+                    label_str = " / ".join(names)
+                else:
+                    label_str = "Deductions"
+
+                st.metric(label_str, f"-{deduction_amt:,.0f} tCO2e")
             with m3:
                 st.metric("Net Tradable Credits", f"{results['net_co2e']:,.0f} tCO2e", delta_color="normal")
 
