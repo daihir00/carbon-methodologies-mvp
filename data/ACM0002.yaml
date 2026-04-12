@@ -1,0 +1,79 @@
+id: "ACM0002"
+name: "Grid-connected Renewable Energy (ACM0002)"
+standard: "CDM / GS"
+version: "1.0"
+
+applicability:
+  type: "Energy"
+  geography: "Global"
+  description: "Grid-connected electricity generation from renewable sources like solar, wind, and hydro."
+
+inputs:
+  - id: "capacity_mw"
+    label: "Installed Capacity"
+    type: "number"
+    unit: "MW"
+    required: true
+    default: 50.0
+    description: "Total nameplate capacity of the power plant."
+
+  - id: "capacity_factor_pct"
+    label: "Capacity Factor"
+    type: "number"
+    unit: "%"
+    required: true
+    default: 20.0
+    description: "Average expected generation efficiency (e.g., ~20% for solar, ~35% for wind)."
+
+  - id: "grid_emission_factor"
+    label: "Grid Emission Factor"
+    type: "number"
+    unit: "tCO2/MWh"
+    required: true
+    default: 0.5
+    description: "Combined margin emission factor of the regional power grid."
+
+  - id: "project_duration_years"
+    label: "Project Crediting Period"
+    type: "integer"
+    unit: "years"
+    required: true
+    default: 10
+    description: "Duration of the carbon crediting period."
+
+  - id: "project_emissions"
+    label: "Project Emissions (Annual)"
+    type: "number"
+    unit: "tCO2/yr"
+    required: true
+    default: 0.0
+    description: "Emissions related to plant operation (often negligible for solar/wind)."
+
+steps:
+  - id: "annual_hours"
+    description: "Total hours in a standard year"
+    formula: "8760"
+    output_unit: "hours"
+
+  - id: "annual_generation_mwh"
+    description: "Expected annual electricity generation"
+    formula: "capacity_mw * annual_hours * (capacity_factor_pct / 100)"
+    output_unit: "MWh/yr"
+
+  - id: "annual_baseline_emissions"
+    description: "Baseline emissions (Emissions avoided from the grid)"
+    formula: "annual_generation_mwh * grid_emission_factor"
+    output_unit: "tCO2/yr"
+
+  - id: "annual_emission_reductions"
+    description: "Net annual emission reductions (Baseline - Project Emissions)"
+    formula: "annual_baseline_emissions - project_emissions"
+    output_unit: "tCO2/yr"
+
+  - id: "total_project_reductions"
+    description: "Total emission reductions over the crediting period"
+    formula: "annual_emission_reductions * project_duration_years"
+    output_unit: "tCO2"
+
+deductions:
+  transmission_and_distribution_loss: 0.02

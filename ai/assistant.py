@@ -12,8 +12,11 @@ class AIAssistant:
         desc_lower = project_description.lower()
         
         # Simple heuristic for MVP
-        if "forest" in desc_lower or "tree" in desc_lower or "planting" in desc_lower:
+        if "forest" in desc_lower or "tree" in desc_lower or "planting" in desc_lower or "reforestation" in desc_lower:
             return ["VM0047"]
+        
+        if "solar" in desc_lower or "wind" in desc_lower or "renewable" in desc_lower or "energy" in desc_lower:
+            return ["ACM0002"]
         
         # Default fallback
         return [m['id'] for m in methodologies]
